@@ -1,4 +1,4 @@
-# BWB — Build, Validate, Wire
+# BWB — Build Without Bullshit
 
 **A contract-driven development framework for Claude Code. Every feature gets a behavioral spec. Every build gets validated against it. The loop runs until contracts pass.**
 
