@@ -96,7 +96,7 @@ Template: /Users/dustbit/.claude/bwb/templates/preparation.md
 ```
 Task(
   prompt="First, read /Users/dustbit/.claude/agents/bwb-preparer.md for your role and instructions.\n\n" + preparer_prompt,
-  subagent_type="general-purpose",
+  subagent_type="bwb-preparer",
   model="${PREPARER_MODEL}",
   description="Prepare Phase ${phase_number}"
 )
