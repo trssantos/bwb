@@ -67,9 +67,9 @@ to write a strong PROJECT.md. Use AskUserQuestion for each follow-up. Dig into t
 - Are there existing tools they're replacing or complementing?
 
 **Platform & runtime:**
-- What will this run on? (Standard app, AI agent platform, serverless, browser extension, CLI tool, etc.)
-- If they mention an unfamiliar platform (e.g., OpenClaw, Rivet, Flowise): ask what it is, how it works, what it can/can't do
-- If standard (Node.js, Python, React): confirm and move on
+- What will this run on?
+- If you're unfamiliar with the platform: ask what it is, how it works, what it can/can't do
+- If you know the platform well: confirm and move on
 
 **Technical shape:**
 - Do they have a preferred tech stack, or should research determine it?
@@ -202,8 +202,8 @@ receives the full PROJECT.md as context along with their specific research brief
 ### Researcher A: Platform + Stack
 
 Research brief:
-- **FIRST: Understand the platform.** If PROJECT.md mentions a non-standard runtime (AI agent platform, no-code tool, custom framework), investigate it deeply — what is it, how does it work, what can it do, what can't it do? Use WebSearch and WebFetch to find docs, tutorials, examples.
-- For standard platforms (Node.js, Python, React): confirm capabilities and move on.
+- **FIRST: Understand the platform.** If you're unfamiliar with the runtime mentioned in PROJECT.md, investigate it deeply — what is it, how does it work, what can it do, what can't it do? Use WebSearch and WebFetch to find docs, tutorials, examples.
+- If you know the platform well: confirm capabilities and move on.
 - Given the ACTUAL platform capabilities, what tech stack best fits?
 - What libraries/tools work within this platform's constraints?
 - Are there existing solutions to build on vs. building from scratch?

@@ -121,8 +121,11 @@ Auto-setup actions: ${auto_setup_count}
 External deps: ${external_deps_count}
   Configured: ${configured_count}
   Mocked: ${mocked_count}
+  Explained: ${explained_count}
   Pending: ${pending_count}
 ```
+
+**Safety check:** If `.env` was created or modified, verify it is listed in `.gitignore`. If not, add `.env` to `.gitignore` before committing.
 
 ## 6. Commit
 

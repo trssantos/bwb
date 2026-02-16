@@ -14,6 +14,7 @@ external_deps_count: N
 mocked_count: N
 configured_count: N
 pending_count: N
+explained_count: N
 ---
 
 # Phase [X]: [Name] — Preparation Report
@@ -32,7 +33,7 @@ pending_count: N
 
 | Variable | Purpose | Status | Used By |
 |----------|---------|--------|---------|
-| [VAR_NAME] | [what it's for] | [Mocked/Configured/Pending/Auto] | [FEAT-NN list] |
+| [VAR_NAME] | [what it's for] | [Mocked/Configured/Explained/Pending/Auto] | [FEAT-NN list] |
 
 ## External Dependencies
 
@@ -41,6 +42,12 @@ pending_count: N
 | Service | Credentials | Verified | FEATs |
 |---------|------------|----------|-------|
 | [service] | [what was set] | [Yes/No] | [FEAT-NN list] |
+
+### Explained (User-managed)
+
+| Service | User Context | FEATs |
+|---------|-------------|-------|
+| [service] | [user's verbatim explanation or predefined choice] | [FEAT-NN list] |
 
 ### Mocked
 
@@ -64,7 +71,7 @@ See `test/mocks/manifest.json` for complete mock inventory.
 
 | FEAT | Status | Dependencies | Notes |
 |------|--------|--------------|-------|
-| [FEAT-NN] | [Ready (mocked)/Ready (real)/Ready (no deps)/Pending] | [dep list] | [brief note] |
+| [FEAT-NN] | [Ready (mocked)/Ready (real)/Ready (real, unverified)/Ready (user-managed)/Ready (no deps)/Pending] | [dep list] | [brief note] |
 
 ## Remaining Manual Steps
 
@@ -76,18 +83,21 @@ See `test/mocks/manifest.json` for complete mock inventory.
 <guidelines>
 
 **Status values:**
-- `ready` — All dependencies resolved (configured, mocked, or not needed). Validation can run fully.
+- `ready` — All dependencies resolved (configured, mocked, explained, or not needed). Validation can run fully.
 - `pending_items` — Some dependencies skipped. Validation will flag affected FEATs.
 
 **Environment variable statuses:**
-- `Configured` — Real value set in .env
+- `Configured` — Real value set in .env (via interactive credential entry)
 - `Mocked` — Using mock fixtures instead of real service
 - `Auto` — Auto-configured (e.g., local DB path)
+- `Explained` — User has their own arrangement (managed externally)
 - `Pending` — Not configured, user chose to skip
 
 **Validation readiness statuses:**
 - `Ready (mocked)` — Dependencies mocked, logic testable via fixtures
 - `Ready (real)` — Real credentials configured and verified
+- `Ready (real, unverified)` — Real credentials configured but verification failed or unavailable
+- `Ready (user-managed)` — User explained their own arrangement, deps treated as resolved
 - `Ready (no deps)` — Feature has no external dependencies
 - `Pending` — Dependencies not resolved, will be flagged in validation
 

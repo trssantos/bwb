@@ -96,8 +96,8 @@ Common types: Tech stack, Timeline, Budget, Dependencies, Compatibility, Perform
 
 **Platform:**
 - What actually runs the code — this gates ALL technical recommendations
-- For standard platforms (Node.js, Python, React): brief is fine
-- For non-standard platforms (AI agent skills, no-code tools, custom runtimes): be thorough
+- For well-known platforms: brief is fine
+- For unfamiliar or niche platforms: be thorough — researchers, planners, and builders need to understand what's possible
 - Researchers, planners, and builders all read this to understand what's possible
 - If the user mentions an unfamiliar platform, research should investigate it deeply
 
