@@ -61,6 +61,7 @@
  *   init execute-phase <phase>         All context for execute-phase workflow
  *   init contracts <phase>             All context for contract extraction
  *   init validate <phase>              All context for validation workflow
+ *   init prepare <phase>               All context for prepare workflow
  *   init brownfield                    Detect existing project for /bwb:init
  *   init quick <description>           All context for quick workflow
  *   init resume                        All context for resume workflow
@@ -81,6 +82,7 @@ const MODEL_PROFILES = {
   'bwb-validator':    { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
   'bwb-fixer':        { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
   'bwb-roadmapper':   { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
+  'bwb-preparer':     { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -331,7 +333,8 @@ function findPhaseInternal(cwd, phase) {
   try {
     const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
     const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort();
-    const match = dirs.find(d => d.startsWith(normalized));
+    const unpadded = normalized.replace(/^0+(\d)/, '$1');
+    const match = dirs.find(d => d.startsWith(normalized + '-') || d.startsWith(unpadded + '-') || d === normalized || d === unpadded);
     if (!match) return null;
 
     const dirMatch = match.match(/^(\d+(?:\.\d+)?)-?(.*)/);
@@ -346,6 +349,7 @@ function findPhaseInternal(cwd, phase) {
     const hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
     const hasContracts = phaseFiles.some(f => f.endsWith('-CONTRACTS.md') || f === 'CONTRACTS.md');
     const hasValidation = phaseFiles.some(f => f.endsWith('-VALIDATION.md') || f === 'VALIDATION.md');
+    const hasPreparation = phaseFiles.some(f => f.endsWith('-PREPARATION.md') || f === 'PREPARATION.md');
 
     const completedPlanIds = new Set(
       summaries.map(s => s.replace('-SUMMARY.md', '').replace('SUMMARY.md', ''))
@@ -368,6 +372,7 @@ function findPhaseInternal(cwd, phase) {
       has_context: hasContext,
       has_contracts: hasContracts,
       has_validation: hasValidation,
+      has_preparation: hasPreparation,
     };
   } catch {
     return null;
@@ -592,7 +597,8 @@ function cmdPhasesList(cwd, options, raw) {
 
     if (phase) {
       const normalized = normalizePhaseName(phase);
-      const match = dirs.find(d => d.startsWith(normalized));
+      const unpadded = normalized.replace(/^0+(\d)/, '$1');
+      const match = dirs.find(d => d.startsWith(normalized + '-') || d.startsWith(unpadded + '-') || d === normalized || d === unpadded);
       if (!match) {
         output({ files: [], count: 0, phase_dir: null, error: 'Phase not found' }, raw, '');
         return;
@@ -1126,7 +1132,8 @@ function cmdFindPhase(cwd, phase, raw) {
   try {
     const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
     const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort();
-    const match = dirs.find(d => d.startsWith(normalized));
+    const unpadded = normalized.replace(/^0+(\d)/, '$1');
+    const match = dirs.find(d => d.startsWith(normalized + '-') || d.startsWith(unpadded + '-') || d === normalized || d === unpadded);
     if (!match) { output(notFound, raw, ''); return; }
 
     const dirMatch = match.match(/^(\d+(?:\.\d+)?)-?(.*)/);
@@ -1459,7 +1466,8 @@ function cmdPhasePlanIndex(cwd, phase, raw) {
   try {
     const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
     const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort();
-    const match = dirs.find(d => d.startsWith(normalized));
+    const unpadded = normalized.replace(/^0+(\d)/, '$1');
+    const match = dirs.find(d => d.startsWith(normalized + '-') || d.startsWith(unpadded + '-') || d === normalized || d === unpadded);
     if (match) phaseDir = path.join(phasesDir, match);
   } catch {}
 
@@ -1899,6 +1907,10 @@ function cmdInitValidate(cwd, phase, includes, raw) {
       if (summaryFiles.length > 0) {
         result.summaries_content = summaryFiles.map(f => safeReadFile(path.join(phaseDirFull, f))).filter(Boolean).join('\n---\n');
       }
+
+      // Load preparation content if exists (from /bwb:prepare)
+      const preparationFile = files.find(f => f.endsWith('-PREPARATION.md') || f === 'PREPARATION.md');
+      if (preparationFile) result.preparation_content = safeReadFile(path.join(phaseDirFull, preparationFile));
     } catch {}
   }
 
@@ -2057,14 +2069,13 @@ function cmdInitProgress(cwd, includes, raw) {
       const hasContext = phaseFiles.some(f => f.endsWith('-CONTEXT.md') || f === 'CONTEXT.md');
       const hasContracts = phaseFiles.some(f => f.endsWith('-CONTRACTS.md') || f === 'CONTRACTS.md');
       const hasValidation = phaseFiles.some(f => f.endsWith('-VALIDATION.md') || f === 'VALIDATION.md');
+      const hasPreparation = phaseFiles.some(f => f.endsWith('-PREPARATION.md') || f === 'PREPARATION.md');
 
       // Determine BWB step
       let step = 'pending';
-      if (summaries.length >= plans.length && plans.length > 0) {
-        step = hasValidation ? 'validate' : 'validate'; // need validation
-      }
-      if (hasValidation) step = 'complete'; // has validation = done (or check gaps)
-      else if (plans.length > 0 && summaries.length > 0 && summaries.length >= plans.length) step = 'validate';
+      if (hasValidation) step = 'complete';
+      else if (hasPreparation && plans.length > 0 && summaries.length > 0 && summaries.length >= plans.length) step = 'validate';
+      else if (plans.length > 0 && summaries.length > 0 && summaries.length >= plans.length) step = 'prepare';
       else if (plans.length > 0 && summaries.length > 0) step = 'build';
       else if (plans.length > 0) step = 'build';
       else if (hasContracts) step = 'plan';
@@ -2079,6 +2090,7 @@ function cmdInitProgress(cwd, includes, raw) {
         plan_count: plans.length, summary_count: summaries.length,
         has_research: hasResearch, has_context: hasContext,
         has_contracts: hasContracts, has_validation: hasValidation,
+        has_preparation: hasPreparation,
       };
 
       phases.push(phaseInfo);
@@ -2114,6 +2126,73 @@ function cmdInitProgress(cwd, includes, raw) {
   output(result, raw);
 }
 
+function cmdInitPrepare(cwd, phase, includes, raw) {
+  if (!phase) error('phase required for init prepare');
+  const config = loadConfig(cwd);
+  const phaseInfo = findPhaseInternal(cwd, phase);
+
+  // Detect project type
+  const packageFiles = {
+    'package.json': 'node',
+    'requirements.txt': 'python',
+    'Pipfile': 'python',
+    'pyproject.toml': 'python',
+    'Cargo.toml': 'rust',
+    'go.mod': 'go',
+    'Gemfile': 'ruby',
+    'composer.json': 'php',
+  };
+  const detected_types = [];
+  for (const [file, type] of Object.entries(packageFiles)) {
+    if (pathExistsInternal(cwd, file)) detected_types.push(type);
+  }
+
+  const result = {
+    preparer_model: resolveModelInternal(cwd, 'bwb-preparer'),
+    commit_docs: config.commit_docs,
+
+    phase_found: !!phaseInfo,
+    phase_dir: phaseInfo?.directory || null,
+    phase_number: phaseInfo?.phase_number || null,
+    phase_name: phaseInfo?.phase_name || null,
+    phase_slug: phaseInfo?.phase_slug || null,
+    padded_phase: phaseInfo?.phase_number?.padStart(2, '0') || null,
+
+    has_contracts: phaseInfo?.has_contracts || false,
+    has_summaries: (phaseInfo?.summaries?.length || 0) > 0,
+    has_preparation: phaseInfo?.has_preparation || false,
+    has_validation: phaseInfo?.has_validation || false,
+    plan_count: phaseInfo?.plans?.length || 0,
+    summary_count: phaseInfo?.summaries?.length || 0,
+
+    detected_types: [...new Set(detected_types)],
+    has_env: pathExistsInternal(cwd, '.env'),
+    has_env_example: pathExistsInternal(cwd, '.env.example'),
+    has_test_dir: pathExistsInternal(cwd, 'test') || pathExistsInternal(cwd, 'tests') || pathExistsInternal(cwd, '__tests__'),
+
+    planning_exists: pathExistsInternal(cwd, '.planning'),
+  };
+
+  if (phaseInfo?.directory) {
+    const phaseDirFull = path.join(cwd, phaseInfo.directory);
+    try {
+      const files = fs.readdirSync(phaseDirFull);
+      const contractsFile = files.find(f => f.endsWith('-CONTRACTS.md') || f === 'CONTRACTS.md');
+      if (contractsFile) result.contracts_content = safeReadFile(path.join(phaseDirFull, contractsFile));
+
+      const summaryFiles = files.filter(f => f.endsWith('-SUMMARY.md') || f === 'SUMMARY.md');
+      if (summaryFiles.length > 0) {
+        result.summaries_content = summaryFiles.map(f => safeReadFile(path.join(phaseDirFull, f))).filter(Boolean).join('\n---\n');
+      }
+
+      const preparationFile = files.find(f => f.endsWith('-PREPARATION.md') || f === 'PREPARATION.md');
+      if (preparationFile) result.preparation_content = safeReadFile(path.join(phaseDirFull, preparationFile));
+    } catch {}
+  }
+
+  output(result, raw);
+}
+
 function cmdInitPhaseOp(cwd, phase, raw) {
   const config = loadConfig(cwd);
   const phaseInfo = findPhaseInternal(cwd, phase);
@@ -2130,6 +2209,7 @@ function cmdInitPhaseOp(cwd, phase, raw) {
     has_context: phaseInfo?.has_context || false,
     has_contracts: phaseInfo?.has_contracts || false,
     has_validation: phaseInfo?.has_validation || false,
+    has_preparation: phaseInfo?.has_preparation || false,
     has_plans: (phaseInfo?.plans?.length || 0) > 0,
     plan_count: phaseInfo?.plans?.length || 0,
     roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
@@ -2356,13 +2436,14 @@ function main() {
         case 'execute-phase': cmdInitExecutePhase(cwd, args[2], includes, raw); break;
         case 'contracts': cmdInitContracts(cwd, args[2], includes, raw); break;
         case 'validate': cmdInitValidate(cwd, args[2], includes, raw); break;
+        case 'prepare': cmdInitPrepare(cwd, args[2], includes, raw); break;
         case 'brownfield': cmdInitBrownfield(cwd, raw); break;
         case 'quick': cmdInitQuick(cwd, args.slice(2).join(' '), raw); break;
         case 'resume': cmdInitResume(cwd, raw); break;
         case 'progress': cmdInitProgress(cwd, includes, raw); break;
         case 'phase-op': cmdInitPhaseOp(cwd, args[2], raw); break;
         default:
-          error(`Unknown init workflow: ${workflow}\nAvailable: new-project, plan-phase, execute-phase, contracts, validate, brownfield, quick, resume, progress, phase-op`);
+          error(`Unknown init workflow: ${workflow}\nAvailable: new-project, plan-phase, execute-phase, contracts, validate, prepare, brownfield, quick, resume, progress, phase-op`);
       }
       break;
     }

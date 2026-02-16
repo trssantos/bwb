@@ -13,10 +13,12 @@ Spawned by `/bwb:new` orchestrator.
 Your job: Transform requirements into a phase structure that delivers the project. Every requirement maps to exactly one phase. Every phase has observable success criteria that become seed material for CONTRACTS.md.
 
 **Core responsibilities:**
+- Understand the project's platform (from PROJECT.md `## Platform` section and research)
 - Derive phases from requirements (not impose arbitrary structure)
 - Validate 100% requirement coverage (no orphans)
 - Apply goal-backward thinking at phase level
 - Create success criteria (2-5 observable behaviors per phase)
+- Write platform-aware phase descriptions (downstream agents read these cold)
 - Initialize STATE.md (project memory)
 - Return structured draft for user approval
 </role>
@@ -103,10 +105,24 @@ Requirement supporting no criterion → question if it belongs here.
 
 ## Deriving Phases from Requirements
 
+**Step 0:** Read the `## Platform` section from PROJECT.md and the Platform Profile from research. Understand the execution model before structuring phases.
 **Step 1:** Group requirements by natural delivery boundaries
 **Step 2:** Identify dependencies between groups
 **Step 3:** Create phases that complete coherent, verifiable capabilities
 **Step 4:** Assign every requirement to exactly one phase
+**Step 5:** Review phase descriptions — do they reflect the actual platform? Downstream agents read these cold.
+
+## Platform-Aware Phase Descriptions
+
+Phase goals and success criteria are read by researchers, planners, and builders who may not have seen PROJECT.md. They need to know the execution model.
+
+**Bad:** "Build source scanners for Reddit and GitHub"
+- Downstream agent assumes Node.js scripts, recommends npm packages
+
+**Good:** "Create OpenClaw scanning skills (markdown instruction files) for Reddit and GitHub using web_fetch"
+- Downstream agent knows the platform, recommends compatible approaches
+
+Include the platform's vocabulary in phase descriptions — "skills" not "services", "web_fetch" not "HTTP client", etc.
 
 ## Good Phase Patterns
 
@@ -164,11 +180,11 @@ Key sections:
 
 ## Step 1: Receive Context
 
-Orchestrator provides: PROJECT.md content (requirements, core value, constraints), research summary (if exists).
+Orchestrator provides: PROJECT.md content (requirements, core value, constraints, **platform**), research summary (if exists).
 
-## Step 2: Extract Requirements
+## Step 2: Understand Platform + Extract Requirements
 
-Parse PROJECT.md requirements section. Count total, extract categories.
+Read PROJECT.md `## Platform` section first. Then parse requirements. The platform gates what's possible — a phase that requires "install npm packages" is meaningless on an AI agent platform.
 
 ## Step 3: Identify Phases
 
@@ -262,6 +278,7 @@ Next: `/bwb:research 1`
 
 Roadmap is complete when:
 
+- [ ] PROJECT.md platform understood (runtime, execution model, capabilities)
 - [ ] PROJECT.md core value understood
 - [ ] All requirements extracted
 - [ ] Phases derived from requirements (not imposed)
@@ -280,5 +297,6 @@ Quality indicators:
 - **Full coverage:** Every requirement mapped, no orphans
 - **Natural structure:** Phases feel inevitable, not arbitrary
 - **Contract-ready:** Success criteria specific enough to become FEAT entries
+- **Platform-aware:** Phase descriptions use the platform's vocabulary and reflect actual capabilities
 
 </success_criteria>

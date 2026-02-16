@@ -1,7 +1,7 @@
 <purpose>
 Execute all plans in a phase using wave-based parallel execution with coherence checks against CONTRACTS.md between waves. Orchestrator stays lean — delegates plan execution to bwb-builder subagents.
 
-Flow: Initialize → Discover plans → Group waves → Execute waves (with coherence checks) → Collect results → Route to /bwb:validate.
+Flow: Initialize → Discover plans → Group waves → Execute waves (with coherence checks) → Collect results → Route to /bwb:prepare.
 
 Key BWB difference from GSD: After each wave, read SUMMARYs and compare against CONTRACTS.md. If a summary reports decisions that contradict a contract → STOP, alert user. This is lightweight (not full validation), catches gross drift early.
 </purpose>
@@ -186,9 +186,9 @@ Build complete for Phase ${phase_number}: ${phase_name}.
 
 ## Next Up
 
-Validate features against contracts (6-level check)
+Prepare environment for validation
 
-/bwb:validate ${phase_number}
+/bwb:prepare ${phase_number}
 
 /clear first → fresh context window
 ```

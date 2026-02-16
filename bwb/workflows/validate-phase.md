@@ -67,6 +67,9 @@ SUMMARIES=""
 for summary in ${phase_dir}/${padded_phase}-*-SUMMARY.md; do
   SUMMARIES="${SUMMARIES}\n$(cat "$summary")"
 done
+
+# Dependency preparation status (from /bwb:prepare)
+PREPARATION=$(cat "${phase_dir}/${padded_phase}-PREPARATION.md" 2>/dev/null)
 ```
 
 ## 5. Spawn Validator Agent(s)
@@ -87,6 +90,9 @@ ${context_content}
 
 **BUILD SUMMARIES (what was built):**
 ${summaries_content}
+
+**PREPARATION (dependency status, mocked services):**
+${preparation_content}
 </validation_context>
 
 <output>

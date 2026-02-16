@@ -75,6 +75,7 @@ cat .planning/PROJECT.md
 Build the context package:
 - Phase goal and success criteria (from PHASE_INFO)
 - Project core value, constraints, tech preferences (from PROJECT.md)
+- Platform info (from PROJECT.md `## Platform` section)
 - Requirements mapped to this phase (from ROADMAP.md)
 
 Present summary:
@@ -122,6 +123,7 @@ Research implementation approach for Phase ${phase_number}: ${phase_name}
 **Phase success criteria:** ${success_criteria}
 **Project core value:** ${core_value}
 **Project constraints:** ${constraints}
+**Project platform:** ${platform}
 **Requirements for this phase:** ${requirements}
 </context>
 

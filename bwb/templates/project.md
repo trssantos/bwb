@@ -17,6 +17,17 @@ Use the user's language and framing. Update whenever reality drifts from this de
 [The ONE thing that matters most. If everything else fails, this must work.
 One sentence that drives prioritization when tradeoffs arise.]
 
+## Platform
+
+**Runtime:** [What executes the code — Node.js / Python / OpenClaw AI agent / browser extension / serverless / etc.]
+**Execution model:** [How things run — scripts / AI skill files / cron jobs / event-driven / CLI / etc.]
+**Capabilities:** [What the runtime CAN do — file I/O, HTTP, browser automation, database, etc.]
+**Limitations:** [What the runtime CANNOT do — no npm packages, no long-running processes, etc.]
+
+[If the platform is standard (Node.js app, Python script, React app), this can be brief.
+If the platform is non-standard or unfamiliar (AI agent platforms, no-code tools, custom runtimes),
+this section is CRITICAL — every downstream agent reads it to understand what's possible.]
+
 ## Requirements
 
 ### Validated
@@ -83,6 +94,13 @@ Common types: Tech stack, Timeline, Budget, Dependencies, Compatibility, Perform
 - Drives prioritization when tradeoffs arise
 - Rarely changes; if it does, it's a significant pivot
 
+**Platform:**
+- What actually runs the code — this gates ALL technical recommendations
+- For standard platforms (Node.js, Python, React): brief is fine
+- For non-standard platforms (AI agent skills, no-code tools, custom runtimes): be thorough
+- Researchers, planners, and builders all read this to understand what's possible
+- If the user mentions an unfamiliar platform, research should investigate it deeply
+
 **Requirements — Validated:**
 - Requirements that shipped and proved valuable
 - Format: `- ✓ [Requirement] — [phase]`
@@ -122,5 +140,6 @@ PROJECT.md evolves throughout the project lifecycle.
 3. New requirements emerged? → Add to Active
 4. Decisions to log? → Add to Key Decisions
 5. "What This Is" still accurate? → Update if drifted
+6. Platform understanding changed? → Update Platform section
 
 </evolution>

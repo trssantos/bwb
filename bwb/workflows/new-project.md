@@ -66,9 +66,14 @@ to write a strong PROJECT.md. Use AskUserQuestion for each follow-up. Dig into t
 - What are they explicitly NOT building? (Prevent scope creep early)
 - Are there existing tools they're replacing or complementing?
 
+**Platform & runtime:**
+- What will this run on? (Standard app, AI agent platform, serverless, browser extension, CLI tool, etc.)
+- If they mention an unfamiliar platform (e.g., OpenClaw, Rivet, Flowise): ask what it is, how it works, what it can/can't do
+- If standard (Node.js, Python, React): confirm and move on
+
 **Technical shape:**
 - Do they have a preferred tech stack, or should research determine it?
-- Are there hard constraints? (Platform, language, hosting, budget)
+- Are there hard constraints? (Language, hosting, budget)
 - Any integrations or external services they know they'll need?
 
 **Challenge vagueness:**
@@ -85,8 +90,9 @@ Continue questioning until you have clarity on:
 1. What the product IS (description + core value)
 2. What the product DOES (5-15 concrete requirements)
 3. What the product does NOT do (explicit boundaries)
-4. Hard constraints on implementation
-5. Key decisions already made
+4. What PLATFORM it runs on (runtime, execution model, capabilities, limitations)
+5. Hard constraints on implementation
+6. Key decisions already made
 
 **Decision gate.** When you have enough material, present a brief summary and ask
 via AskUserQuestion:
@@ -116,6 +122,7 @@ Synthesize the questioning into `.planning/PROJECT.md` using the template at
 Fill in each section:
 - **What This Is** — 2-3 sentences in the user's own words
 - **Core Value** — the one thing that must work above all else
+- **Platform** — runtime, execution model, capabilities, limitations. If the user mentioned an unfamiliar platform, note what's known and flag it for research investigation.
 - **Requirements → Active** — 5-15 checkbox items as hypotheses (not commitments)
 - **Requirements → Out of Scope** — explicit boundaries with reasoning
 - **Context** — technical environment, prior work, user insights
@@ -192,26 +199,29 @@ node /Users/dustbit/.claude/bwb/bin/bwb.js resolve-model bwb-researcher
 Spawn 2 `bwb-researcher` agents **in parallel** using the resolved model. Each researcher
 receives the full PROJECT.md as context along with their specific research brief.
 
-### Researcher A: Stack + Features
+### Researcher A: Platform + Stack
 
 Research brief:
-- What tech stack best fits this project's requirements and constraints?
-- Evaluate framework/library options with tradeoffs (not just "use X")
-- What key libraries or tools are needed for each major feature?
+- **FIRST: Understand the platform.** If PROJECT.md mentions a non-standard runtime (AI agent platform, no-code tool, custom framework), investigate it deeply — what is it, how does it work, what can it do, what can't it do? Use WebSearch and WebFetch to find docs, tutorials, examples.
+- For standard platforms (Node.js, Python, React): confirm capabilities and move on.
+- Given the ACTUAL platform capabilities, what tech stack best fits?
+- What libraries/tools work within this platform's constraints?
 - Are there existing solutions to build on vs. building from scratch?
 - What's the recommended project structure for this stack?
 
 Output to: `.planning/research/stack-and-features.md`
 
+**IMPORTANT:** Start the output with a `## Platform Profile` section documenting: runtime, execution model, capabilities, limitations, source format. All subsequent recommendations must be compatible with this profile.
+
 ### Researcher B: Architecture + Pitfalls
 
 Research brief:
-- What architecture pattern fits this project? (monolith, microservices, serverless, etc.)
-- How should data flow through the system?
-- What are the most common pitfalls for this type of project?
-- What do teams usually get wrong on the first attempt?
-- What performance, security, or scaling concerns should be addressed early?
-- Are there design patterns particularly suited to the core requirements?
+- **FIRST: Read Researcher A's platform context from PROJECT.md.** Your architecture must fit the actual runtime, not an assumed one.
+- What architecture pattern fits this project WITHIN its platform? (If it's an AI agent platform, don't recommend microservices. If it's serverless, don't recommend long-running daemons.)
+- How should data flow through the system given platform capabilities?
+- What are the most common pitfalls for this type of project ON this platform?
+- What do people usually get wrong on the first attempt?
+- What performance, security, or scaling concerns apply given the platform's constraints?
 
 Output to: `.planning/research/architecture-and-pitfalls.md`
 
@@ -248,8 +258,8 @@ node /Users/dustbit/.claude/bwb/bin/bwb.js resolve-model bwb-roadmapper
 ```
 
 Spawn a `bwb-roadmapper` agent with this context:
-- `.planning/PROJECT.md` — requirements, constraints, key decisions
-- `.planning/research/stack-and-features.md` — stack recommendations
+- `.planning/PROJECT.md` — requirements, constraints, key decisions, **platform profile**
+- `.planning/research/stack-and-features.md` — platform investigation + stack recommendations
 - `.planning/research/architecture-and-pitfalls.md` — architecture + risk insights
 - Template: `/Users/dustbit/.claude/bwb/templates/roadmap.md`
 - State template: `/Users/dustbit/.claude/bwb/templates/state.md`
@@ -261,6 +271,7 @@ The roadmapper agent must:
    - 2-5 success criteria per phase (observable user behaviors)
    - No time estimates. Every Active requirement maps to at least one phase.
    - Research insights inform stack choices (Phase 1) and architecture (overall structure)
+   - **Phase descriptions must reflect the actual platform.** If the project runs on an AI agent platform, phase goals should say "Create scanning skill" not "Build scraping service." Downstream agents read phase descriptions cold — if the platform isn't mentioned, they'll assume standard tech.
 
 2. **Create STATE.md** (`.planning/STATE.md`) using the state template.
    - Phase: 1, Status: "Ready to research", Step: "research"

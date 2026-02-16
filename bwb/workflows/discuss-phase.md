@@ -9,7 +9,7 @@ out implementation yourself.
 **BWB difference from GSD:** Discussion receives RESEARCH.md as input. Research findings inform
 the questions — "Research found library X has limitation Y — how should we handle this?"
 
-Flow: Initialize → Load research → Analyze gray areas → Present choices → Discuss selected areas → Write CONTEXT.md → Route to /bwb:contracts.
+Flow: Initialize → Load research → Analyze gray areas → Present choices → Discuss selected areas → Write CONTEXT.md → Reconcile sources (ROADMAP, PROJECT, CLAUDE.md) → Route to /bwb:contracts.
 </purpose>
 
 <downstream_awareness>
@@ -350,6 +350,65 @@ WHY certain decisions were made and what technical constraints exist.]
 Write file.
 </step>
 
+<step name="reconcile_sources">
+**Keep sources of truth coherent.** Discussion may defer scope or change direction from what ROADMAP.md and PROJECT.md currently say. Update them before downstream steps read stale data.
+
+### Check for Deferred Items
+
+If any "Deferred Ideas" were captured (scope explicitly dropped or pushed to later phases):
+
+1. **Update ROADMAP.md** — If success criteria reference deferred items:
+   - Read `.planning/ROADMAP.md`
+   - Find the current phase's success criteria
+   - Remove or annotate references to deferred items
+   - Example: "Each source scanner (Reddit, GitHub, X, newsletters)" → "Each source scanner (Reddit, GitHub, newsletters)"
+
+2. **Update PROJECT.md** — If active requirements include deferred items:
+   - Read `.planning/PROJECT.md`
+   - Move deferred items from `### Active` to `### Out of Scope` with reasoning
+   - Example: `- X/Twitter scanning — deferred, requires auth complexity (see Phase ${phase_number} CONTEXT.md)`
+
+### Check CLAUDE.md for Contradictions
+
+Read `CLAUDE.md` (project root) if it exists. If it describes architecture, workflows, or features that contradict locked decisions:
+
+1. List the contradictions clearly:
+   ```
+   CLAUDE.md has ${N} sections that conflict with decisions locked in this discussion:
+
+   - CLAUDE.md says: "browser for Reddit"
+     Discussion locked: "web_fetch for Reddit"
+
+   - CLAUDE.md says: "Twitter scanning skill"
+     Discussion deferred: X/Twitter to backlog
+   ```
+
+2. Use AskUserQuestion:
+   - header: "CLAUDE.md stale"
+   - question: "CLAUDE.md has sections that contradict decisions from this discussion. Want me to update it?"
+   - options:
+     - "Update it" — Update only the conflicting sections
+     - "Leave it" — I'll update CLAUDE.md myself later
+
+   If "Update it": Update only the conflicting sections, don't rewrite the file.
+
+**If CLAUDE.md doesn't exist or has no conflicts:** Skip this step.
+
+### Commit Reconciliation
+
+If any source docs were updated:
+```bash
+node /Users/dustbit/.claude/bwb/bin/bwb.js commit "docs: reconcile sources after Phase ${padded_phase} discussion" --files ".planning/PROJECT.md" ".planning/ROADMAP.md"
+```
+
+If CLAUDE.md was also updated:
+```bash
+node /Users/dustbit/.claude/bwb/bin/bwb.js commit "docs: update CLAUDE.md after Phase ${padded_phase} discussion" --files "CLAUDE.md"
+```
+
+Only include files that were actually modified.
+</step>
+
 <step name="git_commit">
 Commit phase context:
 
@@ -410,5 +469,6 @@ node /Users/dustbit/.claude/bwb/bin/bwb.js state patch '{"Step": "discuss", "Sta
 - [ ] CONTEXT.md captures actual decisions, not vague vision
 - [ ] Deferred ideas preserved for future phases
 - [ ] Research context preserved for contract extraction
+- [ ] Sources reconciled: ROADMAP.md updated if scope deferred, PROJECT.md updated if requirements changed, CLAUDE.md updated if decisions contradict it
 - [ ] User routed to /bwb:contracts
 </success_criteria>
