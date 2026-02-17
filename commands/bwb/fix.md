@@ -11,7 +11,7 @@ allowed-tools:
   - AskUserQuestion
 ---
 <context>
-Automated fix cycle for validation gaps. Reads GAPs from VALIDATION.md, creates targeted fix plans, executes them, and re-validates affected FEATs. Max 3 iterations before escalating.
+Automated fix cycle for validation gaps. Reads GAPs from VALIDATION.md, creates targeted fix plans, executes them, and runs FULL re-validation (all contracts — catches regressions). Loops automatically until clean or max iterations reached. Configurable via /bwb:settings.
 </context>
 
 <objective>
@@ -24,9 +24,12 @@ Fix validation gaps from /bwb:validate.
 **Creates:**
 - `.planning/phases/{NN}-{name}/{NN}-fix-{N}-PLAN.md` (fix plans)
 - `.planning/phases/{NN}-{name}/{NN}-fix-{N}-SUMMARY.md` (fix results)
-- Updates VALIDATION.md with new results
+- Replaces VALIDATION.md with fresh full re-validation each iteration
 
-**After this command:** Re-validates. If gaps remain, offers another cycle (max 3). If passed, phase complete.
+**Behavior:**
+- Auto-retry: loops automatically, fixing ALL gaps each iteration (default)
+- Full re-validation: validates ALL contracts each iteration (catches regressions)
+- Configurable: max iterations (default 5) and auto-retry toggle via `/bwb:settings`
 </objective>
 
 <execution_context>

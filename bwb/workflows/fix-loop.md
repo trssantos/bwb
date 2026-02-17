@@ -1,7 +1,7 @@
 <purpose>
-Automated fix cycle for validation gaps. Reads GAPs from VALIDATION.md, lets user select which to fix, spawns bwb-fixer for targeted fix plans, executes them, and re-validates affected FEATs. Max 3 iterations before escalating.
+Automated fix cycle for validation gaps. Reads GAPs from VALIDATION.md, spawns bwb-fixer for targeted fix plans, executes them, and runs FULL re-validation (all contracts). Loops automatically until clean or max iterations reached. Configurable via /bwb:settings.
 
-Flow: Load gaps → User selects → Spawn fixer → Execute fixes → Re-validate affected FEATs → Loop or complete.
+Flow: Load gaps → Fix all gaps → Full re-validation → Loop or complete.
 </purpose>
 
 <required_reading>
@@ -17,11 +17,15 @@ Flow: Load gaps → User selects → Spawn fixer → Execute fixes → Re-valida
 INIT=$(node /Users/dustbit/.claude/bwb/bin/bwb.js init phase-op "$ARGUMENTS")
 ```
 
-Parse JSON for: `fixer_model`, `builder_model`, `validator_model`, `commit_docs`, `phase_dir`, `phase_number`, `phase_name`, `padded_phase`, `has_validation`.
+Parse JSON for: `fixer_model`, `builder_model`, `validator_model`, `commit_docs`, `phase_dir`, `phase_number`, `phase_name`, `padded_phase`, `has_validation`, `fix_max_iterations`, `fix_auto_retry`.
 
 **If `has_validation` is false:** Error — run `/bwb:validate ${phase}` first.
 
-## 2. Load Gaps
+Set from config:
+- `max_iterations` = `fix_max_iterations` (default 5)
+- `auto_retry` = `fix_auto_retry` (default true)
+
+## 2. Load Initial Gaps
 
 ```bash
 RESULTS=$(node /Users/dustbit/.claude/bwb/bin/bwb.js validation-status "${phase_dir}/${padded_phase}-VALIDATION.md")
@@ -44,22 +48,44 @@ ${gap_count} gaps to fix:
 ${gap_table}
 ```
 
-## 3. User Selects Gaps
+## 3. Gap Selection
 
-Use AskUserQuestion (multiSelect: true):
+**If `auto_retry` is true:** Skip this step — fix ALL gaps automatically. No user interaction.
+
+**If `auto_retry` is false:** Use AskUserQuestion (multiSelect: true):
 - header: "Fix gaps"
 - question: "Which gaps do you want to fix?"
 - options: Each gap as an option with severity and description
 
 Store selected gaps.
 
-## 4. Fix Loop (Max 3 Iterations)
+## 4. Fix Loop
 
-Track: `iteration = 1`, `max_iterations = 3`
+Track: `iteration = 1`
 
-### 4a. Spawn Fixer Agent(s)
+### FOR iteration = 1 TO max_iterations:
 
-For each selected gap, resolve fixer model:
+### 4a. Load Gaps from VALIDATION.md
+
+```bash
+RESULTS=$(node /Users/dustbit/.claude/bwb/bin/bwb.js validation-status "${phase_dir}/${padded_phase}-VALIDATION.md")
+```
+
+Parse current gaps. **If no gaps → BREAK (all clean!)**
+
+For iteration > 1 in auto_retry mode, use all current gaps (not original selection).
+
+### 4b. Display Iteration Banner
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ BWB ► FIX ITERATION ${iteration}/${max_iterations} — ${gap_count} gaps
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 4c. Spawn Fixer Agent(s)
+
+For each gap, resolve fixer model:
 ```bash
 FIXER_MODEL=$(node /Users/dustbit/.claude/bwb/bin/bwb.js resolve-model bwb-fixer --raw)
 ```
@@ -90,6 +116,12 @@ Fix summary: ${phase_dir}/${padded_phase}-fix-${fix_num}-SUMMARY.md
 </output>
 ```
 
+If iteration > 1, prepend to the fix prompt:
+```
+**Previous fix attempt failed.** Read the gap evidence carefully
+for what was already tried. Take a different approach this time.
+```
+
 ```
 Task(
   prompt="First, read /Users/dustbit/.claude/agents/bwb-fixer.md for your role.\nThen read /Users/dustbit/.claude/agents/bwb-builder.md for execution.\n\n" + fix_prompt,
@@ -99,7 +131,7 @@ Task(
 )
 ```
 
-### 4b. Collect Fix Results
+### 4d. Collect Fix Results
 
 After fixer returns, spot-check:
 - Fix PLAN.md exists
@@ -113,74 +145,80 @@ Fix ${gap_id}: ${status}
   Commit: ${commit_hash}
 ```
 
-### 4c. Re-validate Affected FEATs Only
+### 4e. Full Re-validation
 
-Spawn bwb-validator for ONLY the FEATs that had fixes applied:
+Spawn bwb-validator with ALL contracts (not just affected FEATs):
 
 ```bash
 VALIDATOR_MODEL=$(node /Users/dustbit/.claude/bwb/bin/bwb.js resolve-model bwb-validator --raw)
 ```
 
+Read ALL contracts from `${phase_dir}/${padded_phase}-CONTRACTS.md`.
+Read CONTEXT from `${phase_dir}/${padded_phase}-CONTEXT.md` for L6 checks.
+Read all SUMMARY.md files from the phase directory.
+
 ```markdown
 <validation_context>
 **Phase:** ${phase_number} - ${phase_name}
-**Re-validation after fix iteration ${iteration}**
+**Full re-validation after fix iteration ${iteration}**
 
-**CONTRACTS (validate ONLY these):**
-${affected_feat_entries}
+**ALL CONTRACTS (validate every one):**
+${all_contracts_content}
 
 **CONTEXT (for L6):**
 ${context_content}
+
+**SUMMARIES:**
+${all_summaries}
 </validation_context>
 
 <output>
-Update: ${phase_dir}/${padded_phase}-VALIDATION.md
-(Merge new results into existing file — update affected FEAT rows, update gap statuses)
+Write FRESH: ${phase_dir}/${padded_phase}-VALIDATION.md
+(Complete replacement — validate ALL contracts from scratch)
 </output>
 ```
 
-### 4d. Check Results
+```
+Task(
+  prompt="First, read /Users/dustbit/.claude/agents/bwb-validator.md for your role.\n\n" + validation_prompt,
+  subagent_type="bwb-validator",
+  model="${VALIDATOR_MODEL}",
+  description="Re-validate phase ${phase_number}"
+)
+```
+
+### 4f. Check Results
 
 ```bash
 RESULTS=$(node /Users/dustbit/.claude/bwb/bin/bwb.js validation-status "${phase_dir}/${padded_phase}-VALIDATION.md")
 ```
 
-**If all selected gaps resolved:**
-```
-All ${fixed_count} gaps resolved in iteration ${iteration}!
-```
-Break loop → go to step 5.
+**If no gaps → BREAK (success!)**
 
-**If gaps remain AND iteration < max_iterations:**
+**If gaps remain AND `auto_retry` is true AND iteration < max_iterations:**
 ```
-${remaining} gaps still open after iteration ${iteration}.
-
-| GAP | Status | Notes |
-|-----|--------|-------|
-${remaining_table}
+${remaining} gaps remain after iteration ${iteration}. Auto-retrying...
 ```
+Continue to next iteration.
 
+**If gaps remain AND `auto_retry` is false AND iteration < max_iterations:**
 Use AskUserQuestion:
-- header: "Continue fixing?"
-- question: "${remaining} gaps remain. Try another fix iteration? (${iteration}/${max_iterations})"
+- header: "Continue?"
+- question: "${remaining} gaps remain after iteration ${iteration}/${max_iterations}. Try another fix iteration?"
 - options:
   - "Fix again" — Another iteration
   - "Accept as-is" — Move on with remaining gaps
-  - "Escalate" — Need to rethink approach
 
-If "Fix again": increment iteration, go to 4a.
-If "Accept as-is": go to step 5.
-If "Escalate": suggest `/bwb:discuss ${phase}` to revisit decisions.
+If "Fix again": increment iteration, continue.
+If "Accept as-is": BREAK → go to step 5.
 
 **If gaps remain AND iteration >= max_iterations:**
 ```
 Max fix iterations (${max_iterations}) reached. ${remaining} gaps remain.
-
-Consider:
-- Revisiting the contracts: /bwb:contracts ${phase_number}
-- Replanning: /bwb:plan ${phase_number}
-- Accepting remaining gaps as known limitations
 ```
+BREAK → go to step 5.
+
+### END LOOP
 
 ## 5. Final Status
 
@@ -213,31 +251,36 @@ node /Users/dustbit/.claude/bwb/bin/bwb.js state patch '{"Step": "complete", "St
 ### Some Gaps Remain
 
 ```
-Phase ${phase_number} has ${remaining} known gaps.
+Phase ${phase_number} has ${remaining} known gaps after ${iteration} iteration(s).
 
-These will be tracked in VALIDATION.md for future reference.
+| GAP | Contract | Level | Description |
+|-----|----------|-------|-------------|
+${remaining_table}
 
 ## Options
 - /bwb:fix ${phase_number} — Try another fix cycle later
 - /bwb:contracts ${phase_number} — Revisit contracts if requirements changed
+- /bwb:plan ${phase_number} — Replan the phase
 - Continue to next phase with known limitations
+- /bwb:settings — Adjust max iterations or auto-retry behavior
 ```
 
 Update state:
 ```bash
-node /Users/dustbit/.claude/bwb/bin/bwb.js state patch '{"Step": "fix", "Status": "${remaining} gaps remaining"}'
+node /Users/dustbit/.claude/bwb/bin/bwb.js state patch '{"Step": "fix", "Status": "${remaining} gaps remaining after ${iteration} iterations"}'
 ```
 
 </process>
 
 <success_criteria>
 - [ ] VALIDATION.md loaded and gaps parsed
-- [ ] User selected which gaps to fix
-- [ ] bwb-fixer spawned for each selected gap
+- [ ] In auto mode: all gaps fixed without user interaction
+- [ ] In manual mode: user selected which gaps to fix
+- [ ] bwb-fixer spawned for each gap (parallel)
 - [ ] Fix plans created (type: fix, contracts field)
 - [ ] Fixes executed with atomic commits
-- [ ] Re-validation run on affected FEATs only
-- [ ] Loop terminates (all fixed, user accepts, or max iterations)
-- [ ] VALIDATION.md updated with fix results
+- [ ] FULL re-validation run on ALL contracts each iteration
+- [ ] Loop terminates (all fixed, max iterations, or user accepts)
+- [ ] VALIDATION.md fully replaced each iteration
 - [ ] User routed to next step
 </success_criteria>

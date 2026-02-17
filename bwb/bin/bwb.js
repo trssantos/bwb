@@ -109,6 +109,8 @@ function loadConfig(cwd) {
     model_profile: 'balanced',
     commit_docs: true,
     search_gitignored: false,
+    fix_max_iterations: 5,
+    fix_auto_retry: true,
   };
 
   try {
@@ -118,6 +120,8 @@ function loadConfig(cwd) {
       model_profile: parsed.model_profile ?? defaults.model_profile,
       commit_docs: parsed.commit_docs ?? defaults.commit_docs,
       search_gitignored: parsed.search_gitignored ?? defaults.search_gitignored,
+      fix_max_iterations: parsed.fix_max_iterations ?? defaults.fix_max_iterations,
+      fix_auto_retry: parsed.fix_auto_retry ?? defaults.fix_auto_retry,
     };
   } catch {
     return defaults;
@@ -2214,6 +2218,8 @@ function cmdInitPhaseOp(cwd, phase, raw) {
     plan_count: phaseInfo?.plans?.length || 0,
     roadmap_exists: pathExistsInternal(cwd, '.planning/ROADMAP.md'),
     planning_exists: pathExistsInternal(cwd, '.planning'),
+    fix_max_iterations: config.fix_max_iterations,
+    fix_auto_retry: config.fix_auto_retry,
   }, raw);
 }
 
