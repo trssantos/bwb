@@ -63,6 +63,7 @@
  *   init validate <phase>              All context for validation workflow
  *   init prepare <phase>               All context for prepare workflow
  *   init brownfield                    Detect existing project for /bwb:init
+ *   init baseline                      Detect areas for /bwb:baseline
  *   init quick <description>           All context for quick workflow
  *   init resume                        All context for resume workflow
  *   init progress                      All context for progress workflow
@@ -83,6 +84,7 @@ const MODEL_PROFILES = {
   'bwb-fixer':        { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
   'bwb-roadmapper':   { quality: 'opus', balanced: 'sonnet', budget: 'sonnet' },
   'bwb-preparer':     { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
+  'bwb-analyzer':     { quality: 'opus', balanced: 'sonnet', budget: 'haiku' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1998,6 +2000,115 @@ function cmdInitBrownfield(cwd, raw) {
   }, raw);
 }
 
+function cmdInitBaseline(cwd, raw) {
+  const config = loadConfig(cwd);
+  const planningExists = pathExistsInternal(cwd, '.planning');
+  const hasPhase00 = pathExistsInternal(cwd, '.planning/phases/00-baseline');
+
+  // Reuse brownfield detection for project info
+  const packageFiles = {
+    'package.json': 'node',
+    'requirements.txt': 'python',
+    'Pipfile': 'python',
+    'pyproject.toml': 'python',
+    'Cargo.toml': 'rust',
+    'go.mod': 'go',
+    'Package.swift': 'swift',
+    'build.gradle': 'java',
+    'pom.xml': 'java',
+    'Gemfile': 'ruby',
+    'composer.json': 'php',
+  };
+
+  const detected_types = [];
+  for (const [file, type] of Object.entries(packageFiles)) {
+    if (pathExistsInternal(cwd, file)) {
+      detected_types.push(type);
+    }
+  }
+
+  // Get project name
+  let projectName = path.basename(cwd);
+  const pkgPath = path.join(cwd, 'package.json');
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+      if (pkg.name) projectName = pkg.name;
+    } catch {}
+  }
+
+  // Count source files
+  let sourceFileCount = 0;
+  try {
+    const result = execSync('find . -maxdepth 5 \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.swift" -o -name "*.java" \\) 2>/dev/null | grep -v node_modules | grep -v .git | grep -v dist | grep -v build | wc -l', {
+      cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    sourceFileCount = parseInt(result.trim(), 10) || 0;
+  } catch {}
+
+  // Group source files by top-level directory into areas
+  const areas = [];
+  const srcDirs = ['src', 'lib', 'app', 'pages', 'components', 'api', 'server', 'client', 'routes', 'handlers', 'services', 'modules', 'features'];
+  const foundDirs = [];
+
+  for (const dir of srcDirs) {
+    if (pathExistsInternal(cwd, dir)) foundDirs.push(dir);
+  }
+
+  // If 'src' exists, also check its subdirectories
+  if (pathExistsInternal(cwd, 'src')) {
+    try {
+      const srcEntries = fs.readdirSync(path.join(cwd, 'src'), { withFileTypes: true });
+      for (const entry of srcEntries) {
+        if (entry.isDirectory() && !['__tests__', '__mocks__', 'test', 'tests', 'types', 'utils', 'helpers', 'config', 'styles', 'assets'].includes(entry.name)) {
+          const subPath = path.join('src', entry.name);
+          // Count files in this subdirectory
+          try {
+            const count = execSync(`find ${subPath} -maxdepth 3 \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \\) 2>/dev/null | grep -v node_modules | wc -l`, {
+              cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'],
+            });
+            const fileCount = parseInt(count.trim(), 10) || 0;
+            if (fileCount >= 2) {
+              // Capitalize first letter for display name
+              const displayName = entry.name.charAt(0).toUpperCase() + entry.name.slice(1);
+              areas.push({ name: displayName, path: subPath, files: fileCount });
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  // If no src subdirectories found, use top-level dirs as areas
+  if (areas.length === 0) {
+    for (const dir of foundDirs) {
+      try {
+        const count = execSync(`find ${dir} -maxdepth 3 \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \\) 2>/dev/null | grep -v node_modules | wc -l`, {
+          cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        const fileCount = parseInt(count.trim(), 10) || 0;
+        if (fileCount >= 2) {
+          const displayName = dir.charAt(0).toUpperCase() + dir.slice(1);
+          areas.push({ name: displayName, path: dir, files: fileCount });
+        }
+      } catch {}
+    }
+  }
+
+  // Sort by file count descending
+  areas.sort((a, b) => b.files - a.files);
+
+  output({
+    areas,
+    has_phase_00: hasPhase00,
+    project_name: projectName,
+    detected_types,
+    source_file_count: sourceFileCount,
+    commit_docs: config.commit_docs,
+    planning_exists: planningExists,
+  }, raw);
+}
+
 function cmdInitQuick(cwd, description, raw) {
   const config = loadConfig(cwd);
   const now = new Date();
@@ -2444,12 +2555,13 @@ function main() {
         case 'validate': cmdInitValidate(cwd, args[2], includes, raw); break;
         case 'prepare': cmdInitPrepare(cwd, args[2], includes, raw); break;
         case 'brownfield': cmdInitBrownfield(cwd, raw); break;
+        case 'baseline': cmdInitBaseline(cwd, raw); break;
         case 'quick': cmdInitQuick(cwd, args.slice(2).join(' '), raw); break;
         case 'resume': cmdInitResume(cwd, raw); break;
         case 'progress': cmdInitProgress(cwd, includes, raw); break;
         case 'phase-op': cmdInitPhaseOp(cwd, args[2], raw); break;
         default:
-          error(`Unknown init workflow: ${workflow}\nAvailable: new-project, plan-phase, execute-phase, contracts, validate, prepare, brownfield, quick, resume, progress, phase-op`);
+          error(`Unknown init workflow: ${workflow}\nAvailable: new-project, plan-phase, execute-phase, contracts, validate, prepare, brownfield, baseline, quick, resume, progress, phase-op`);
       }
       break;
     }

@@ -58,6 +58,16 @@ Use AskUserQuestion:
 
 ## 4. Load Supporting Context
 
+First, check if this is a baseline phase:
+```bash
+FRONTMATTER=$(node /Users/dustbit/.claude/bwb/bin/bwb.js frontmatter get "${phase_dir}/${padded_phase}-CONTRACTS.md")
+```
+
+Parse `baseline` field from frontmatter. If `baseline: true`, this is a Phase 00 baseline.
+
+**If baseline phase:** Skip CONTEXT.md and SUMMARY.md loading — they don't exist for Phase 00. Set `is_baseline=true`.
+
+**If normal phase:**
 ```bash
 # For L6 faithfulness checks
 CONTEXT=$(cat "${phase_dir}/${padded_phase}-CONTEXT.md" 2>/dev/null)
@@ -77,6 +87,33 @@ PREPARATION=$(cat "${phase_dir}/${padded_phase}-PREPARATION.md" 2>/dev/null)
 **Strategy:** For 1-3 FEATs, spawn 1 validator. For 4+ FEATs, consider 2 validators (split FEATs between them).
 
 Validator prompt:
+
+**If baseline phase (`is_baseline=true`):**
+
+```markdown
+<validation_context>
+**Phase:** ${phase_number} - ${phase_name}
+**Baseline:** true — contracts derived from existing code, not discussion
+
+**CONTRACTS (validate these):**
+${contracts_content}
+
+**CONTEXT (for L6 faithfulness):**
+N/A — baseline phase. Auto-PASS L6 for all FEATs.
+
+**BUILD SUMMARIES (what was built):**
+N/A — baseline phase. Code already exists.
+
+**PREPARATION (dependency status, mocked services):**
+${preparation_content}
+</validation_context>
+
+<output>
+Write to: ${phase_dir}/${padded_phase}-VALIDATION.md
+</output>
+```
+
+**If normal phase:**
 
 ```markdown
 <validation_context>
@@ -143,6 +180,27 @@ node /Users/dustbit/.claude/bwb/bin/bwb.js commit "docs(${padded_phase}): valida
 ## 9. Route Based on Results
 
 ### All Passed
+
+**If baseline phase (`is_baseline=true`):**
+
+Do NOT mark phase as "complete" or route to next phase. Instead:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ BWB ► BASELINE INTACT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All ${total} baseline contracts validated. No regressions.
+
+Run /bwb:validate 0 again after any phase to check for regressions.
+```
+
+Update state:
+```bash
+node /Users/dustbit/.claude/bwb/bin/bwb.js state patch '{"Step": "validate", "Status": "Baseline intact — no regressions"}'
+```
+
+**If normal phase:**
 
 ```
 All ${total} contracts validated for Phase ${phase_number}!

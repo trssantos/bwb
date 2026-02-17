@@ -188,7 +188,22 @@ Source files: {source_file_count}
 First phase: {first_task title}"
 ```
 
-## Step 7 — Route to Next Workflow
+## Step 7 — Offer Baseline (Brownfield)
+
+If `source_file_count > 20`, offer baseline extraction before routing:
+
+Use AskUserQuestion:
+- header: "Baseline?"
+- question: "This project has ${source_file_count} source files. Want to create a baseline (Phase 00) to track existing features and catch regressions?"
+- options:
+  - "Yes" — Analyze codebase and extract contracts for existing features
+  - "Later" — Skip for now, run /bwb:baseline when ready
+  - "No" — Skip baseline entirely
+
+If "Yes": Route to `/bwb:baseline` (run before research/add routing).
+If "Later" or "No": Continue to Step 8.
+
+## Step 8 — Route to Next Workflow
 
 Determine routing based on `first_task` complexity:
 
@@ -211,6 +226,7 @@ Recommended next step: /bwb:{research|add} 1
 </process>
 
 <offer_next>
+- `/bwb:baseline` — Analyze existing codebase and create regression baseline (Phase 00)
 - `/bwb:research 1` — Investigate the codebase before making changes (recommended for refactors, fixes, unfamiliar code)
 - `/bwb:add 1` — Start working on Phase 1 directly (recommended for clear, well-defined tasks)
 - `/bwb:quick "description"` — Skip the phase system and do a quick tracked task instead

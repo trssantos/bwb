@@ -180,6 +180,15 @@ L5 INTEGRATED: FAIL
 4. Check: If user said "real-time" — is it actually real-time (not polling)?
 5. Check: If user specified a library — is that library used?
 
+**Baseline phases (CONTRACTS.md has `baseline: true`):**
+L6 is auto-PASS. No CONTEXT.md exists for baseline phases because contracts were
+derived from existing code, not discussion. Record:
+```
+L6 FAITHFUL: PASS (N/A — baseline phase, no discussion context)
+```
+
+**Normal phases:**
+
 **PASS:** Implementation matches discussed decisions
 **FAIL:** Implementation deviates from what was discussed
 
@@ -231,6 +240,11 @@ Read CONTRACTS.md from the phase directory. Parse all FEAT entries:
 
 ## Step 2: Load Context
 
+**Baseline phases (CONTRACTS.md has `baseline: true` in frontmatter):**
+Skip CONTEXT.md loading — baseline contracts were derived from existing code, not discussion.
+L6 will auto-PASS for all FEATs (see L6 section below).
+
+**Normal phases:**
 Read CONTEXT.md for L6 faithfulness checks. Extract locked decisions.
 
 ## Step 3: Load Summaries
