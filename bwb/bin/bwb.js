@@ -1560,16 +1560,25 @@ function cmdSummaryExtract(cwd, summaryPath, fields, raw) {
 // ─── Contracts Operations ────────────────────────────────────────────────────
 
 function cmdContractsAnalyze(cwd, phase, raw) {
-  const phaseInfo = phase ? findPhaseInternal(cwd, phase) : null;
   let contractsPath = null;
 
-  if (phaseInfo) {
-    const phaseDir = path.join(cwd, phaseInfo.directory);
-    try {
-      const files = fs.readdirSync(phaseDir);
-      const contractsFile = files.find(f => f.endsWith('-CONTRACTS.md') || f === 'CONTRACTS.md');
-      if (contractsFile) contractsPath = path.join(phaseDir, contractsFile);
-    } catch {}
+  // If phase arg looks like a file path, use it directly
+  if (phase && (phase.endsWith('.md') || phase.includes('/'))) {
+    const resolved = path.isAbsolute(phase) ? phase : path.join(cwd, phase);
+    if (fs.existsSync(resolved)) contractsPath = resolved;
+  }
+
+  // Otherwise, look up by phase number
+  if (!contractsPath) {
+    const phaseInfo = phase ? findPhaseInternal(cwd, phase) : null;
+    if (phaseInfo) {
+      const phaseDir = path.join(cwd, phaseInfo.directory);
+      try {
+        const files = fs.readdirSync(phaseDir);
+        const contractsFile = files.find(f => f.endsWith('-CONTRACTS.md') || f === 'CONTRACTS.md');
+        if (contractsFile) contractsPath = path.join(phaseDir, contractsFile);
+      } catch {}
+    }
   }
 
   if (!contractsPath) {
@@ -2457,7 +2466,7 @@ function main() {
       const sub = args[1];
       if (sub === 'analyze') {
         const pi = args.indexOf('--phase');
-        cmdContractsAnalyze(cwd, pi !== -1 ? args[pi + 1] : null, raw);
+        cmdContractsAnalyze(cwd, pi !== -1 ? args[pi + 1] : (args[2] || null), raw);
       } else {
         error('Unknown contracts subcommand. Available: analyze');
       }
