@@ -118,32 +118,29 @@ BWB works on existing projects, not just greenfield:
 
 ## Installation
 
-BWB is a set of files that live in your `~/.claude/` directory.
-
 ```bash
-# Clone the repo
-git clone https://github.com/trssantos/bwb.git /tmp/bwb-install
-
-# Copy framework files
-cp -r /tmp/bwb-install/bwb ~/.claude/bwb
-cp -r /tmp/bwb-install/agents/bwb-*.md ~/.claude/agents/
-cp -r /tmp/bwb-install/commands/bwb ~/.claude/commands/bwb
-
-# Make CLI executable
-chmod +x ~/.claude/bwb/bin/bwb.js
-
-# Verify
-node ~/.claude/bwb/bin/bwb.js generate-slug "test install"
-
-# Clean up
-rm -rf /tmp/bwb-install
+npx bwb-cc@latest
 ```
+
+That's it. The installer copies BWB framework files to `~/.claude/` and you're ready to go.
 
 ### Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed and set up (`~/.claude/` must exist)
 - Node.js 18+
-- Git
+
+### Manual Install
+
+If you prefer not to use npx:
+
+```bash
+git clone https://github.com/trssantos/bwb.git /tmp/bwb-install
+cp -r /tmp/bwb-install/bwb ~/.claude/bwb
+cp -r /tmp/bwb-install/agents/bwb-*.md ~/.claude/agents/
+cp -r /tmp/bwb-install/commands/bwb ~/.claude/commands/bwb
+chmod +x ~/.claude/bwb/bin/bwb.js
+rm -rf /tmp/bwb-install
+```
 
 ---
 

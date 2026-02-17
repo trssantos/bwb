@@ -1,0 +1,30 @@
+{
+  "name": "bwb-cc",
+  "version": "1.0.0",
+  "description": "Build Without Bullshit — Contract-driven development framework for Claude Code",
+  "bin": {
+    "bwb-cc": "bin/install.js"
+  },
+  "files": [
+    "bin",
+    "bwb",
+    "agents",
+    "commands"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "claude-code",
+    "development-framework",
+    "contract-driven",
+    "behavioral-contracts",
+    "validation"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trssantos/bwb.git"
+  },
+  "homepage": "https://github.com/trssantos/bwb"
+}

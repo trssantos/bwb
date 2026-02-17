@@ -1,0 +1,7 @@
+.git
+.DS_Store
+.planning
+.github
+.claude
+*.log
+firebase-debug.log
