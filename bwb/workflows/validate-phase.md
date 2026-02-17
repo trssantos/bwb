@@ -192,6 +192,8 @@ Do NOT mark phase as "complete" or route to next phase. Instead:
 
 All ${total} baseline contracts validated. No regressions.
 
+Results: ${phase_dir}/${padded_phase}-VALIDATION.md
+
 Run /bwb:validate 0 again after any phase to check for regressions.
 ```
 
