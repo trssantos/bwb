@@ -49,7 +49,26 @@ Display the workflow banner:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Open with the core question via AskUserQuestion:
+### Spec file seeding (if provided)
+
+If a spec file path was provided (via `$ARGUMENTS`):
+
+1. Read the file using the Read tool.
+2. Display: **"Read your spec file — using it as a starting point."**
+3. Analyze the spec content to extract whatever is there: project description, features,
+   constraints, platform, scope — any format accepted (PRD, notes, bullet list, prose).
+4. Change the questioning approach:
+   - **Skip** questions already clearly answered by the spec
+   - **Confirm** things that seem stated but could be ambiguous (via AskUserQuestion)
+   - **Ask** about gaps — areas the spec doesn't cover (platform, constraints, boundaries, motivation)
+   - Instead of opening with "What do you want to build?", open with a summary of what
+     was understood from the spec + what needs clarification
+
+Then continue with deeper questioning below (skipping areas already covered by the spec).
+
+### Opening question (no spec file)
+
+If no spec file was provided, open with the core question via AskUserQuestion:
 
 > **What do you want to build?**
 

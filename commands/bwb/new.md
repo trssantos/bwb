@@ -1,6 +1,7 @@
 ---
 name: bwb:new
 description: Initialize a new project with deep context gathering, research, and roadmap
+argument-hint: "[spec-file]"
 allowed-tools:
   - Read
   - Bash
@@ -34,4 +35,6 @@ Initialize a new project through deep questioning, research, and structured plan
 <process>
 Execute the new-project workflow from @/Users/dustbit/.claude/bwb/workflows/new-project.md end-to-end.
 Preserve all workflow gates (validation, approvals, commits, routing).
+
+If a spec file was provided via $ARGUMENTS, pass it to Step 3 (Deep Questioning) as the spec file path.
 </process>
