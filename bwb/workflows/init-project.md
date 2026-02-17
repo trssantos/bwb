@@ -82,10 +82,10 @@ Store the response as `first_task`.
 
 ```
 AskUserQuestion: "Quick setup — three questions:
-  1. Model profile? (pro = Claude with extended thinking, fast = quick responses, auto = let BWB decide)
+  1. Model profile? (quality = best results with Opus, balanced = good mix with Sonnet, budget = fastest/cheapest with Haiku)
   2. Commit planning docs automatically? (yes/no)
   3. Search gitignored files during analysis? (yes/no)
-  Respond like: pro, yes, no"
+  Respond like: balanced, yes, no"
 ```
 
 Parse the three values. Write `.planning/config.json`:
